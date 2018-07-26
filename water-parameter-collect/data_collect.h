@@ -2,6 +2,7 @@
 #define DATA_COLLECT_H
 
 #include <string.h>
+#include <termios.h>
 
 typedef struct  
 {										    
@@ -24,6 +25,8 @@ typedef struct
 }nmea_msg;
 
 void NMEA_GPRMC_Analysis(nmea_msg *gpsx, unsigned char *buf);
+
+int data_collect(void);
 
 
 

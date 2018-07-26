@@ -158,3 +158,13 @@ void NMEA_GPRMC_Analysis(nmea_msg *gpsx, unsigned char *buf)
 		gpsx->utc.year = 2000 + temp % 100;
 	}
 }
+
+int data_collect()
+{
+    int fd;
+    fd=open("/dev/ttyS2",O_RDWR|O_NOCTTY);
+    if(fd<0)
+    {
+        perror("open usart device error. \n")
+    }
+}
