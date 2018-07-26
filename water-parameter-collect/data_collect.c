@@ -1,8 +1,5 @@
 #include"data_collect.h"
 
-
-
-
 unsigned char modbus1[8] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x04, 0x44, 0x09};
 unsigned char modbus2[8] = {0x02, 0x03, 0x00, 0x00, 0x00, 0x04, 0x44, 0x3a};
 unsigned char modbus3[8] = {0x03, 0x03, 0x00, 0x00, 0x00, 0x04, 0x45, 0xeb};
@@ -11,9 +8,75 @@ unsigned char modbus5[8] = {0x05, 0x03, 0x00, 0x00, 0x00, 0x04, 0x45, 0x8d};
 unsigned char modbus6[8] = {0x06, 0x03, 0x00, 0x00, 0x00, 0x04, 0x45, 0xbe};
 unsigned char modbus7[8] = {0x03, 0x03, 0x25, 0x00, 0x00, 0x00, 0x4F, 0x24};
 unsigned char modbus8[8] = {0x03, 0x03, 0x26, 0x00, 0x00, 0x04, 0x4E, 0xA3};
+unsigned char get_modbus1[8] = {0x00};
+unsigned char get_modbus2[8] = {0x00};
+unsigned char get_modbus3[8] = {0x00};
+unsigned char get_modbus4[8] = {0x00};
+unsigned char get_modbus5[8] = {0x00};
+unsigned char get_modbus6[8] = {0x00};
+unsigned char get_modbus7[8] = {0x00};
+unsigned char get_modbus8[8] = {0x00};
 
 nmea_msg gprs;
+Str_RECORD data_record;
 
+int time_tick=1000;
+
+
+
+unsigned long string_to_int_d(unsigned char *u16Byte, unsigned char len)
+{
+    union FloattByte //联合体中的量占用同存储空间
+    {
+        unsigned char charbuffer[4];
+        unsigned long TEST_DATA;
+    } comm_u16;
+    comm_u16.TEST_DATA = 0;
+    switch (len)
+    {
+    case 4:
+        comm_u16.charbuffer[0] = u16Byte[3];
+        comm_u16.charbuffer[1] = u16Byte[2];
+        comm_u16.charbuffer[2] = u16Byte[1];
+        comm_u16.charbuffer[3] = u16Byte[0];
+        break;
+    case 3:
+        comm_u16.charbuffer[0] = u16Byte[2];
+        comm_u16.charbuffer[1] = u16Byte[1];
+        comm_u16.charbuffer[2] = u16Byte[0];
+        break;
+    case 2:
+        comm_u16.charbuffer[0] = u16Byte[1];
+        comm_u16.charbuffer[1] = u16Byte[0];
+        break;
+    case 1:
+        comm_u16.charbuffer[0] = u16Byte[0];
+        break;
+    }
+    return comm_u16.TEST_DATA;
+}
+
+void int_to_string(unsigned char *u16Byte, unsigned char len, unsigned long shu) //小端模式
+{
+    union FloattByte //联合体中的量占用同存储空间
+    {
+        unsigned char charbuffer[4];
+        unsigned long TEST_DATA;
+    } comm_u16;
+    comm_u16.TEST_DATA = shu;
+    switch (len)
+    {
+    case 4:
+        u16Byte[3] = comm_u16.charbuffer[3];
+    case 3:
+        u16Byte[2] = comm_u16.charbuffer[2];
+    case 2:
+        u16Byte[1] = comm_u16.charbuffer[1];
+    case 1:
+        u16Byte[0] = comm_u16.charbuffer[0];
+        break;
+    }
+}
 
 
 /***********************************
@@ -159,12 +222,172 @@ void NMEA_GPRMC_Analysis(nmea_msg *gpsx, unsigned char *buf)
 	}
 }
 
-int data_collect()
+void data_collect()
 {
     int fd;
+    int ret=0;
+    int timeout=0;
+    int parameter=0;
+    int water_temperature=0;
+    //int air_temperature=0;
     fd=open("/dev/ttyS2",O_RDWR|O_NOCTTY);
-    if(fd<0)
+    while(fd<0)
     {
-        perror("open usart device error. \n")
+        perror("open usart device error. \n");
+        usleep(time_tick);
+        fd=open("/dev/ttyS2",O_RDWR|O_NOCTTY);
+        timeout++;
+        if(timeout>3)
+        {
+            break;
+        }
     }
+    timeout=0;
+    write(fd, modbus1, sizeof(modbus1));
+    usleep(time_tick);
+    while(read(fd, get_modbus1, sizeof(get_modbus1))<0&&read(fd, get_modbus1, sizeof(get_modbus1))==0)
+    {
+        write(fd, modbus1, sizeof(modbus1));
+        usleep(time_tick);
+        timeout++;
+        if(timeout>3)
+        {
+            ret=1;
+            break;
+        }
+        if(ret==0)
+        {
+            parameter = string_to_int_d(&get_modbus1[3], 2);
+            int_to_string(data_record.diandaolv, 3, parameter);
+        }
+        else
+        {
+            int_to_string(data_record.diandaolv, 3, 9999);
+        }
+    }
+    write(fd, modbus2, sizeof(modbus2));
+    usleep(time_tick);
+    timeout = 0;
+    ret = 0;
+    while(read(fd, get_modbus2, sizeof(get_modbus2))<0&&read(fd, get_modbus2, sizeof(get_modbus2))==0)
+    {
+        write(fd, modbus2, sizeof(modbus2));
+        usleep(time_tick);
+        timeout++;
+        if(timeout>3)
+        {
+            ret=1;
+            break;
+        }
+        if(ret==0)
+        {
+            parameter = string_to_int_d(&get_modbus2[3], 2);
+            int_to_string(data_record.ph, 2, parameter);
+            water_temperature = string_to_int_d(&get_modbus2[7], 2); //  250   25度
+            int_to_string(data_record.wendu, 2, 1000 +water_temperature);
+        }
+        else
+        {
+            int_to_string(data_record.ph,2,9999);
+            int_to_string(data_record.wendu,2,9999);
+        }
+    }
+    write(fd, modbus3, sizeof(modbus3));
+    usleep(time_tick);
+    timeout = 0;
+    ret = 0;
+    while(read(fd, get_modbus3, sizeof(get_modbus3))<0&&read(fd, get_modbus3, sizeof(get_modbus3))==0)
+    {
+        write(fd, modbus3, sizeof(modbus3));
+        usleep(time_tick);
+        timeout++;
+        if(timeout>3)
+        {
+            ret=1;
+            break;
+        }
+        if(ret==0&&get_modbus3[3]==0x03)
+        {
+            parameter = string_to_int_d(&get_modbus3[3], 2);
+            int_to_string(data_record.rongjieyang, 3, parameter);
+        }
+        else
+        {
+            int_to_string(data_record.rongjieyang,3,9999);
+        }
+    }
+    write(fd, modbus4, sizeof(modbus4));
+    usleep(time_tick);
+    timeout = 0;
+    ret = 0;
+    while(read(fd, get_modbus4, sizeof(get_modbus4))<0&&read(fd, get_modbus4, sizeof(get_modbus4))==0)
+    {
+        write(fd, modbus4, sizeof(modbus4));
+        usleep(time_tick);
+        timeout++;
+        if(timeout>3)
+        {
+            ret=1;
+            break;
+        }
+        if(ret==0)
+        {
+            parameter = string_to_int_d(&get_modbus4[3], 2)*10;
+            int_to_string(data_record.zhuodu, 3, parameter);
+        }
+        else
+        {
+            int_to_string(data_record.zhuodu,3,9999);
+        }
+    }
+    write(fd, modbus5, sizeof(modbus5));
+    usleep(time_tick);
+    timeout = 0;
+    ret = 0;
+    while(read(fd, get_modbus5, sizeof(get_modbus5))<0&&read(fd, get_modbus5, sizeof(get_modbus5))==0)
+    {
+        write(fd, modbus5, sizeof(modbus5));
+        usleep(time_tick);
+        timeout++;
+        if(timeout>3)
+        {
+            ret=1;
+            break;
+        }
+        if(ret==0)
+        {
+            parameter = string_to_int_d(&get_modbus5[3], 2)*10;
+            int_to_string(data_record.andan, 3, parameter);
+        }
+        else
+        {
+            int_to_string(data_record.andan,3,9999);
+        }
+    }
+    write(fd, modbus6, sizeof(modbus6));
+    usleep(time_tick);
+    timeout = 0;
+    ret = 0;
+    while(read(fd, get_modbus6, sizeof(get_modbus6))<0&&read(fd, get_modbus6, sizeof(get_modbus6))==0)
+    {
+        write(fd, modbus6, sizeof(modbus6));
+        usleep(time_tick);
+        timeout++;
+        if(timeout>3)
+        {
+            ret=1;
+            break;
+        }
+        if(ret==0)
+        {
+            parameter = string_to_int_d(&get_modbus6[3], 2)*10;
+            int_to_string(data_record.cod, 3, parameter);
+        }
+        else
+        {
+            int_to_string(data_record.cod,3,9999);
+        }
+    }
+
+
 }
