@@ -235,7 +235,7 @@ void data_collect()
     {
         perror("open usart device error. \n");
         usleep(time_tick);
-        fd=open("/dev/ttyS2",O_RDWR|O_NOCTTY);
+        fd=open("/dev/ttyUSB0",O_RDWR|O_NOCTTY);
         timeout++;
         if(timeout>3)
         {
@@ -380,7 +380,7 @@ void data_collect()
         }
         if(ret==0)
         {
-            parameter = string_to_int_d(&get_modbus6[3], 2)*10;
+            parameter = string_to_int_d(&get_modbus6[3], 2)*10; 
             int_to_string(data_record.cod, 3, parameter);
         }
         else
@@ -388,6 +388,7 @@ void data_collect()
             int_to_string(data_record.cod,3,9999);
         }
     }
+
 
 
 }

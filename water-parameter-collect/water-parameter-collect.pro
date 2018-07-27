@@ -20,3 +20,6 @@ HEADERS += \
     data_collect.h \
     mqtt_connect.h
 
+
+
+
