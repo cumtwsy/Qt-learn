@@ -24,6 +24,18 @@ typedef struct
     unsigned char crc;
 } Str_RECORD; //32B
 
+typedef struct
+{
+    int diandaolv;
+    int ph;
+    int wendu;
+    int rongjieyang;
+    int zhuodu;
+    int andan;
+    int cod;
+    int qiwen;
+} DATA;
+
 typedef struct  
 {										    
  	unsigned short year;	//年份
@@ -49,8 +61,19 @@ void NMEA_GPRMC_Analysis(nmea_msg *gpsx, unsigned char *buf);
 
 void data_collect(void);
 
+DATA data_collect2(void);
+
+nmea_msg get_gps(void);
+
 unsigned long string_to_int_d(unsigned char *u16Byte, unsigned char len);
 
+int openSerial(int iPort);
+
+int serial_init(void);
+
+int fd;
+
+int fd2;
 
 
 #endif // DATA_COLLECT_H

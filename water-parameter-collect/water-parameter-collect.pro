@@ -13,7 +13,8 @@ SOURCES += main.c \
 
 HEADERS += \
     data_collect.h \
-    mqtt_connect.h
+    mqtt_connect.h \
+    ota.h
 
 
 

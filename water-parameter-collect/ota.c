@@ -16,34 +16,13 @@
  *
  */
 
+#include"ota.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <pthread.h>
+#define PRODUCT_KEY             "a1iwqDlN76y"
+#define DEVICE_NAME             "hemu001"
+#define DEVICE_SECRET           "P9fYXUx9sTEqKfnjnxyuyNVf9uWwjEiF"
 
-#include "iot_import.h"
-#include "iot_export.h"
-
-
-#if defined(MQTT_ID2_AUTH) && defined(TEST_ID2_DAILY)
-    #define PRODUCT_KEY             "a1iwqDlN76y"
-    #define DEVICE_NAME             "hemu001"
-    #define DEVICE_SECRET           "P9fYXUx9sTEqKfnjnxyuyNVf9uWwjEiF"
-#elif defined(TEST_OTA_PRE)
-    #define PRODUCT_KEY             "a1iwqDlN76y"
-    #define DEVICE_NAME             "hemu001"
-    #define DEVICE_SECRET           "P9fYXUx9sTEqKfnjnxyuyNVf9uWwjEiF"
-#elif defined(TEST_MQTT_DAILY)
-    #define PRODUCT_KEY             "a1iwqDlN76y"
-    #define DEVICE_NAME             "hemu001"
-    #define DEVICE_SECRET           "P9fYXUx9sTEqKfnjnxyuyNVf9uWwjEiF"
-#else
-    #define PRODUCT_KEY             "a1iwqDlN76y"
-    #define DEVICE_NAME             "hemu001"
-    #define DEVICE_SECRET           "P9fYXUx9sTEqKfnjnxyuyNVf9uWwjEiF"
-#endif
+extern void* pclient;
 
 char g_product_key[PRODUCT_KEY_LEN + 1];
 char g_product_secret[PRODUCT_SECRET_LEN + 1];
@@ -138,12 +117,10 @@ void event_handle(void *pcontext, void *pclient, iotx_mqtt_event_msg_pt msg)
 
 int mqtt_client(void)
 {
-#define OTA_BUF_LEN        (5000)
+    #define OTA_BUF_LEN        (5000)
 
     int rc = 0, ota_over = 0;
-    void *pclient = NULL, *h_ota = NULL;
-    iotx_conn_info_pt pconn_info;
-    iotx_mqtt_param_t mqtt_params;
+    void *h_ota = NULL;
     char *msg_buf = NULL, *msg_readbuf = NULL;
     FILE *fp;
     char buf_ota[OTA_BUF_LEN];
@@ -152,60 +129,9 @@ int mqtt_client(void)
         EXAMPLE_TRACE("open file failed");
         goto do_exit;
     }
-
-    if (NULL == (msg_buf = (char *)HAL_Malloc(OTA_MQTT_MSGLEN))) {
-        EXAMPLE_TRACE("not enough memory");
-        rc = -1;
-        goto do_exit;
-    }
-
-    if (NULL == (msg_readbuf = (char *)HAL_Malloc(OTA_MQTT_MSGLEN))) {
-        EXAMPLE_TRACE("not enough memory");
-        rc = -1;
-        goto do_exit;
-    }
-
-    /**< get device info*/
-    HAL_GetProductKey(g_product_key);
-    HAL_GetDeviceName(g_device_name);
-    HAL_GetDeviceSecret(g_device_secret);
-    /**< end*/
-
-    /* Device AUTH */
-    if (0 != IOT_SetupConnInfo(g_product_key, g_device_name, g_device_secret, (void **)&pconn_info)) {
-        EXAMPLE_TRACE("AUTH request failed!");
-        rc = -1;
-        goto do_exit;
-    }
-
-    /* Initialize MQTT parameter */
-    memset(&mqtt_params, 0x0, sizeof(mqtt_params));
-
-    mqtt_params.port = pconn_info->port;
-    mqtt_params.host = pconn_info->host_name;
-    mqtt_params.client_id = pconn_info->client_id;
-    mqtt_params.username = pconn_info->username;
-    mqtt_params.password = pconn_info->password;
-    mqtt_params.pub_key = pconn_info->pub_key;
-
-    mqtt_params.request_timeout_ms = 2000;
-    mqtt_params.clean_session = 0;
-    mqtt_params.keepalive_interval_ms = 60000;
-    mqtt_params.pread_buf = msg_readbuf;
-    mqtt_params.read_buf_size = OTA_MQTT_MSGLEN;
-    mqtt_params.pwrite_buf = msg_buf;
-    mqtt_params.write_buf_size = OTA_MQTT_MSGLEN;
-
-    mqtt_params.handle_event.h_fp = event_handle;
-    mqtt_params.handle_event.pcontext = NULL;
-
-
-    /* Construct a MQTT client with specify parameter */
-    pclient = IOT_MQTT_Construct(&mqtt_params);
-    if (NULL == pclient) {
-        EXAMPLE_TRACE("MQTT construct failed");
-        rc = -1;
-        goto do_exit;
+    if(pclient==NULL)
+    {
+        usleep(100);
     }
     h_ota = IOT_OTA_Init(PRODUCT_KEY, DEVICE_NAME, pclient);
     if (NULL == h_ota) {
@@ -276,7 +202,6 @@ int mqtt_client(void)
     } while (!ota_over);
 
     HAL_SleepMs(200);
-
 
 
 do_exit:
